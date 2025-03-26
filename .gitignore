@@ -1,0 +1,8 @@
+node_modules
+dist
+prod
+tmp
+test-*
+*-report
+.DS_Store
+.cache

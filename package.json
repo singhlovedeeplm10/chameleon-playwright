@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node --loader ts-node/esm src/index.ts",
     "dev:watch": "nodemon --watch 'src/**/*.ts' --exec 'node --loader ts-node/esm' src/index.ts",
-    "local:reddit-comment": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/comment.js .cache/reddit '{\"search\":\"playwright\"}'",
+    "local:reddit-comment": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/comment.js .cache/reddit \"{\\\"search\\\":\\\"playwright\\\",\\\"comSearch\\\":\\\"playwright\\\"}\"",
+    "local:reddit-reply-comment": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/reply-comment.ts .cache/reddit \"{\\\"search\\\":\\\"playwright\\\"}\"",
+    "local:reddit-join-subreddit": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/join-subreddit.ts .cache/reddit \"{\\\"search\\\":\\\"playwright\\\"}\"",
     "local:x-retweet": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/retweet.js .cache/default '{\"search\":\"grok\"}'",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",

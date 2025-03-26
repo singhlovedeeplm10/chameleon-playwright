@@ -11,6 +11,10 @@ class Reddit extends Base {
   searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
   threadLocator = () => this.page.getByTestId("search-post-unit");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
+  emailField = () => this.page.locator('input[type="email"]');
+  passwordField = () => this.page.locator('input[type="password"]');
+  nextButton = () => this.page.getByRole("button", { name: "Next" });
+
   PosttitleText = async() => {
     const selector = 'h1[id^="post-title-"][slot="title"]';
     await expect(this.page.locator(selector)).toBeVisible();
@@ -24,6 +28,74 @@ class Reddit extends Base {
       throw new Error("Post title not found");
     return title;
   }
+
+  // Check login  
+  checkLoginAuthentication = async () => {
+    try {
+      const selector = '#login-button';
+      const loginButton = this.page.locator(selector);
+      const isLoginBtn = await loginButton.isVisible();
+      return isLoginBtn;
+    } catch (error) {
+      console.log('user can not logged in');
+    }
+  }  
+
+  loginWithCredentials = async (email: string, password: string) => {
+    const selector = '#login-button';
+    const loginButton = this.page.locator(selector);
+    await expect(loginButton).toBeVisible();
+    loginButton.click();
+
+    const loginUserName = this.page.locator("faceplate-text-input#login-username");
+    loginUserName.click();
+
+    const loginUserNameInput = loginUserName.locator("input");
+    await loginUserNameInput.type(email, { delay: random(10, 50) });
+    await loginUserNameInput.press('Tab');
+
+    const loginUserPassword = this.page.locator("faceplate-text-input#login-password");
+    loginUserPassword.click();
+
+    const loginUserPasswordInput = loginUserPassword.locator("input");
+    await loginUserPasswordInput.type(password, { delay: random(10, 50) });
+    const loginButtonn = this.page.getByRole('button', { name: 'Log In' });
+
+    await expect(loginButtonn).toBeVisible();
+    loginButtonn.click();
+    return true;
+  }
+
+  loginWithGoogle = async (email: string, password:string) => {
+    const selector = '#login-button';
+    const loginButton = this.page.locator(selector);
+    await expect(loginButton).toBeVisible();
+    loginButton.click();
+    const googleSelector = 'auth-flow-sso-buttons iframe';
+    const iframeLocator = this.page.frameLocator(googleSelector);
+    
+    const googleLoginButton = iframeLocator.locator('div#container div:nth-child(2)'); 
+    await googleLoginButton.waitFor({ state: 'visible' });
+    await googleLoginButton.click();
+
+    const waitForOpenPopup = this.page.waitForEvent("popup");
+    const popupDetailFilleds = await waitForOpenPopup;
+    let isEmailValueEmpty =  await popupDetailFilleds.getByLabel("Email or phone").inputValue();
+    const googleLoginNextButton = popupDetailFilleds.locator('div#identifierNext button');
+    await googleLoginNextButton.waitFor({ state: 'visible' });
+
+    if(!isEmailValueEmpty){
+      console.log('email not found!');
+      await popupDetailFilleds.getByLabel("Email or phone").type(email, { delay: random(10, 50) });
+      await googleLoginNextButton.click();
+      await popupDetailFilleds.getByLabel("Enter your password").type(password, { delay: random(10, 50) });
+      const googleLoginPassNextButton = popupDetailFilleds.locator('div#passwordNext button');
+      await googleLoginPassNextButton.waitFor({ state: 'visible' });
+      await googleLoginPassNextButton.click();
+    }else{
+      await googleLoginNextButton.click();
+    }
+  } 
 
   async search(text: string) {
     await this.searchTextBox().waitFor(); //wait for textbox to display

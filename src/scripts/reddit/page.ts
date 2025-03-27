@@ -11,16 +11,18 @@ class Reddit extends Base {
   searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
   threadLocator = () => this.page.getByTestId("search-post-unit");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
-  PosttitleText = async() => {
+  upVoteButton = () => this.page.locator('shreddit-post button[upvote]');
+  downVoteButton = () => this.page.locator('shreddit-post button[downvote]');
+  PosttitleText = async () => {
     const selector = 'h1[id^="post-title-"][slot="title"]';
     await expect(this.page.locator(selector)).toBeVisible();
-    
+
     // Use evaluate with a more sophisticated text extraction
     const title = await this.page.locator(selector).evaluate(el => {
       // Get the text directly, trim whitespace, and normalize spaces
       return el.textContent?.replace(/\s+/g, ' ').trim();
     });
-    if(!title) 
+    if (!title)
       throw new Error("Post title not found");
     return title;
   }
@@ -90,6 +92,112 @@ class Reddit extends Base {
     expect(submitButton).toBeVisible();
     await submitButton.click();
   }
+
+  async doVote(vote: boolean) {
+    const upVoteButton = this.upVoteButton();
+    const downVoteButton = this.downVoteButton();
+
+    if (vote) {
+      const upVoteCount = await upVoteButton.count();
+      if (upVoteCount > 0) {
+        const isVisible = await upVoteButton.first().isVisible();
+        if (isVisible) {
+          const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
+          if (isPressed !== "true") {
+            await upVoteButton.first().scrollIntoViewIfNeeded();
+            await upVoteButton.first().click();
+            console.log("Upvote clicked");
+          } else {
+            console.log("Upvote already done");
+          }
+        } else {
+          console.log("Upvote button is not visible");
+        }
+      } else {
+        console.log("No upvote button found");
+      }
+    } else {
+      const downVoteCount = await downVoteButton.count();
+      if (downVoteCount > 0) {
+        const isVisible = await downVoteButton.first().isVisible();
+        if (isVisible) {
+          const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
+          if (isPressed !== "true") {
+            await downVoteButton.first().scrollIntoViewIfNeeded();
+            await downVoteButton.first().click();
+            console.log("Downvote clicked");
+          } else {
+            console.log("Downvote already done");
+          }
+        } else {
+          console.log("Downvote button is not visible");
+        }
+      } else {
+        console.log("No downvote button found");
+      }
+    }
+
+    return true;
+  }
+
+
+
+  async findSubreddit(search: string): Promise<boolean> {
+
+    const selector = "faceplate-tracker[noun=tab_communities]";
+    await this.page.locator(selector).click();
+
+    await this.waitForNavigation();
+
+    const subRedditSearchOption = this.page.locator("search-telemetry-tracker a").first();
+    const href = await this.page.locator("search-telemetry-tracker a").first().getAttribute("href");
+    if (href) {
+      try {
+        const url = new URL(href);
+        const searchTerm = url.searchParams.get('q');
+        const decodedSearchTerm = searchTerm ? decodeURIComponent(searchTerm) : "";
+        if (decodedSearchTerm.toLowerCase().trim() === search.toLowerCase().trim()) {
+          console.log("Found Subreddit");
+          subRedditSearchOption.click();
+          await this.waitForNavigation();
+
+          const postButton = this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first();
+          await expect(postButton).toBeVisible();
+          return true;
+        }
+      } catch (error) {
+        return false;
+      }
+    } else {
+      console.log("URL not found.");
+      return false;
+    }
+    return false
+  }
+
+  async createPostSubreddit(commentTitle: string, commmentText: string): Promise<boolean> {
+    const postButton = this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first().click();
+    const titleElem = this.page.locator("#innerTextArea").first();
+    const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
+    await titleElem.click();
+    await titleElem.pressSequentially(commentTitle, { delay: random(56, 128) });
+    await this.page.keyboard.press("Tab");
+    await this.page.keyboard.press("Tab");
+    await this.page.keyboard.press("Enter");
+    await this.page.keyboard.type(commmentText, { delay: random(56, 128) });
+
+    const buttonLocator = this.page.locator('#inner-post-submit-button');
+    const buttonCount = await buttonLocator.count();
+    if (buttonCount > 0) {
+      await buttonLocator.first().click();
+      return true
+    } else {
+      console.log('Button not found');
+      return true
+    }
+
+  }
+
 }
 
 export default Reddit;

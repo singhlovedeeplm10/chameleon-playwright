@@ -15,6 +15,6 @@ export default async function (
   await page.findRandomThread();
 
   // Step 3 - 1st Comment on main thread
-  const input = await page.PosttitleText();
-  await page.addCommentToThread(await ask(input));
+  // const input = await page.PosttitleText();
+  // await page.addCommentToThread(await ask(input));
 }

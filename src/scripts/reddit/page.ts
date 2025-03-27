@@ -15,16 +15,15 @@ class Reddit extends Base {
   passwordField = () => this.page.locator('input[type="password"]');
   nextButton = () => this.page.getByRole("button", { name: "Next" });
 
-  PosttitleText = async() => {
+  PosttitleText = async () => {
     const selector = 'h1[id^="post-title-"][slot="title"]';
     await expect(this.page.locator(selector)).toBeVisible();
-    
     // Use evaluate with a more sophisticated text extraction
     const title = await this.page.locator(selector).evaluate(el => {
       // Get the text directly, trim whitespace, and normalize spaces
       return el.textContent?.replace(/\s+/g, ' ').trim();
     });
-    if(!title) 
+    if (!title)
       throw new Error("Post title not found");
     return title;
   }
@@ -35,13 +34,19 @@ class Reddit extends Base {
       const selector = '#login-button';
       const loginButton = this.page.locator(selector);
       const isLoginBtn = await loginButton.isVisible();
+      if (!isLoginBtn) {
+        console.log('isAuthenticated : ', true);
+      } else {
+        console.log('isAuthenticated : ', false);
+      }
       return isLoginBtn;
     } catch (error) {
       console.log('user can not logged in');
     }
-  }  
+  }
 
   loginWithCredentials = async (email: string, password: string) => {
+    console.log('login proccess started...');
     const selector = '#login-button';
     const loginButton = this.page.locator(selector);
     await expect(loginButton).toBeVisible();
@@ -67,33 +72,49 @@ class Reddit extends Base {
   }
 
   loginWithGoogle = async (email: string, password:string) => {
+    console.log('login proccess started...');
     const selector = '#login-button';
     const loginButton = this.page.locator(selector);
     await expect(loginButton).toBeVisible();
     loginButton.click();
-    const googleSelector = 'auth-flow-sso-buttons iframe';
-    const iframeLocator = this.page.frameLocator(googleSelector);
-    
-    const googleLoginButton = iframeLocator.locator('div#container div:nth-child(2)'); 
-    await googleLoginButton.waitFor({ state: 'visible' });
-    await googleLoginButton.click();
+
+    const googleIframeSelector = 'iframe[title="Sign in with Google Button"]';
+    await this.page.waitForSelector(googleIframeSelector, { state: "visible" });
+    const googleButton = await this.page.locator(googleIframeSelector);
+    await googleButton.click();
 
     const waitForOpenPopup = this.page.waitForEvent("popup");
     const popupDetailFilleds = await waitForOpenPopup;
-    let isEmailValueEmpty =  await popupDetailFilleds.getByLabel("Email or phone").inputValue();
-    const googleLoginNextButton = popupDetailFilleds.locator('div#identifierNext button');
-    await googleLoginNextButton.waitFor({ state: 'visible' });
+    await popupDetailFilleds.waitForLoadState();
 
-    if(!isEmailValueEmpty){
-      console.log('email not found!');
-      await popupDetailFilleds.getByLabel("Email or phone").type(email, { delay: random(10, 50) });
-      await googleLoginNextButton.click();
-      await popupDetailFilleds.getByLabel("Enter your password").type(password, { delay: random(10, 50) });
-      const googleLoginPassNextButton = popupDetailFilleds.locator('div#passwordNext button');
-      await googleLoginPassNextButton.waitFor({ state: 'visible' });
-      await googleLoginPassNextButton.click();
-    }else{
-      await googleLoginNextButton.click();
+    const emailButtons = popupDetailFilleds.locator('[data-email]');
+    const emailCount = await emailButtons.count();
+
+    if (emailCount > 0) {
+      await emailButtons.first().click();
+    } else {
+      const emailInput = popupDetailFilleds.getByLabel("Email or phone");
+      await emailInput.waitFor({ state: "visible" });
+      let isEmailValueEmpty = await emailInput.inputValue();
+
+      const googleLoginNextButton = popupDetailFilleds.locator('div#identifierNext button');
+      await googleLoginNextButton.waitFor({ state: 'visible' });
+
+      if (!isEmailValueEmpty) {
+        console.log('email not found!');
+        await emailInput.type(email, { delay: random(10, 50) });
+        await googleLoginNextButton.click();
+
+        const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
+        await passwordInput.waitFor({ state: 'visible' });
+        await passwordInput.type(password, { delay: random(10, 50) });
+
+        const googleLoginPassNextButton = popupDetailFilleds.locator('div#passwordNext button');
+        await googleLoginPassNextButton.waitFor({ state: 'visible' });
+        await googleLoginPassNextButton.click();
+      } else {
+        await googleLoginNextButton.click();
+      }
     }
   } 
 

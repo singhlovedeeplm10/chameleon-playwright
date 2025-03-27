@@ -13,9 +13,6 @@ export default async function (
   await page.goToStartPage();
   const isLogin = await page.checkLoginAuthentication();
   if (isLogin) {
-      console.log('logout user ---google--');
-      await page.loginWithGoogle(options.email, options.password);
-  } else {
-      console.log('logged in user ---google--');
+    await page.loginWithGoogle(options.email, options.password);
   }
 }
